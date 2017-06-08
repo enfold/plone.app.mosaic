@@ -68,7 +68,7 @@ define([
       // Init overlay
       var $modalStructure = $(
         '<div class="plone-modal-wrapper mosaic-overlay">' +
-          '<div class="mosaic-modal fade in" style="position: absolute; padding: 20px;">' +
+          '<div class="mosaic-modal" style="position: absolute; padding: 20px;">' +
             '<div class="plone-modal-dialog">' +
               '<div class="plone-modal-content">' +
                 '<div class="plone-modal-header"><a class="plone-modal-close">×</a></div>' +
@@ -130,6 +130,7 @@ define([
 
     // Expand the overlay
     $('.mosaic-overlay').show().addClass('active');
+    $('.mosaic-overlay .mosaic-modal').addClass('plone-modal');
     $('.mosaic-overlay-blocker').show();
     $('body').addClass('plone-modal-open');
 
@@ -194,6 +195,12 @@ define([
           .removeClass('mosaic-hidden');
       }
 
+      // Hide layout fields
+      form.find('#formfield-form-widgets-ILayoutAware-pageSiteLayout')
+        .addClass('mosaic-hidden');
+      form.find('#formfield-form-widgets-ILayoutAware-sectionSiteLayout')
+        .addClass('mosaic-hidden');
+
       // Hide field which are on the wysiwyg area
       for (x = 0; x < $.mosaic.options.tiles.length; x += 1) {
         if ($.mosaic.options.tiles[x].name === 'fields') {
@@ -212,9 +219,8 @@ define([
 
       // Hide tab if fieldset has no visible items
       form.find("fieldset").each(function () {
-        if ($(this).children("div:not(.mosaic-hidden)").length === 0) {
-          $('a[href=#fieldsetlegend-' +
-            $(this).attr('id').split('-')[1] + ']')
+        if ($(this).children("div:not(legend, .mosaic-hidden)").length === 0) {
+          $('a[href=#autotoc-item-autotoc-' + ($(this).index() - 1) + ']')
             .addClass('mosaic-hidden');
         }
       });
@@ -264,6 +270,7 @@ define([
     // Hide overlay
     $('.mosaic-overlay').hide().removeClass('active');
     $('.mosaic-overlay-blocker').hide();
+    $('.mosaic-overlay .mosaic-modal').removeClass('plone-modal');
     $('body').removeClass('plone-modal-open');
   };
 });
