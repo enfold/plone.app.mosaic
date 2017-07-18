@@ -71,6 +71,14 @@ define([
       if (e.keyCode === 18) {
         $(".mosaic-panel", $.mosaic.document).removeClass('mosaic-advanced');
       }
+
+      /* Start Enfold Patch
+         Remove class enfold-advanced-layout when Ctrl is released */
+      // Check if Ctrl
+      if (e.keyCode === 17) {
+        $(".mosaic-panel", $.mosaic.document).removeClass('enfold-advanced-layout');
+      }
+      /* End Enfold Patch */
     };
 
     // Keydown handler
@@ -79,6 +87,14 @@ define([
       if (e.keyCode === 18) {
         $(".mosaic-panel", $.mosaic.document).addClass('mosaic-advanced');
       }
+
+      /* Start Enfold Patch
+         Add class enfold-advanced-layout when Ctrl is pressed */
+      // Check if Ctrl
+      if (e.keyCode === 17) {
+        $(".mosaic-panel", $.mosaic.document).addClass('enfold-advanced-layout');
+      }
+      /* End Enfold Patch */
 
       // Check if esc
       if (e.keyCode === 27) {
@@ -845,31 +861,33 @@ define([
     // Dropped on row
     } else {
 
+        /* Start Enfold Patch
+            When the layout object has the special class (Assigned in line 82), wrap
+            the tile in a div.mosaic-grid-cell so it would create an inner column */
+        var tile_to_drop = original_tile
+                            .clone(true)
+                            .removeClass("mosaic-original-tile mosaic-helper-tile mosaic-helper-tile-new mosaic-tile-align-right mosaic-tile-align-left")
+                            .css({width: "", left: "", top: ""})
+                            .mosaicAddDrag()
+                            .addClass("mosaic-new-tile")
+        if (obj.hasClass('enfold-advanced-layout')){
+            tile_to_drop = $($.mosaic.document.createElement("div"))
+                            .addClass("mosaic-grid-cell mosaic-position-leftmost mosaic-width-half")
+                            .append(tile_to_drop);
+        };
+        /* End Enfold Patch */
+
       // If top
       if (dir === "top") {
 
         // Add tile before
-        drop.before(
-          original_tile
-            .clone(true)
-            .removeClass("mosaic-original-tile mosaic-helper-tile mosaic-helper-tile-new mosaic-tile-align-right mosaic-tile-align-left")
-            .css({width: "", left: "", top: ""})
-            .mosaicAddDrag()
-            .addClass("mosaic-new-tile")
-        );
+        drop.before(tile_to_drop);
 
       // If bottom
       } else if (dir === "bottom") {
 
         // Add tile after
-        drop.after(
-          original_tile
-            .clone(true)
-            .removeClass("mosaic-original-tile mosaic-helper-tile mosaic-helper-tile-new mosaic-tile-align-right mosaic-tile-align-left")
-            .css({width: "", left: "", top: ""})
-            .mosaicAddDrag()
-            .addClass("mosaic-new-tile")
-        );
+        drop.after(tile_to_drop);
 
       // If left
       } else if ((dir === "left") || (dir === "right")) {
@@ -1638,6 +1656,73 @@ define([
    * @return {String} Full content of the page
    */
   $.mosaic.getPageContent = function (exportLayout) {
+    /* Start Enfold Patch
+        Since we allow recursive cells, we need to improve the code that converts them into layouts */
+    var recursiveGridCell = function (obj) {
+        var body = "";
+        // Add column size
+        switch ($(obj).mosaicGetPositionClass()) {
+          case "mosaic-position-leftmost":
+            position = 1;
+            break;
+          case "mosaic-position-quarter":
+            position = 4;
+            break;
+          case "mosaic-position-third":
+            position = 5;
+            break;
+          case "mosaic-position-half":
+            position = 7;
+            break;
+          case "mosaic-position-two-thirds":
+            position = 9;
+            break;
+          case "mosaic-position-three-quarters":
+            position = 10;
+            break;
+        }
+
+        // Add column size
+        switch ($(obj).mosaicGetWidthClass()) {
+          case "mosaic-width-half":
+            size = 6;
+            break;
+          case "mosaic-width-quarter":
+            size = 3;
+            break;
+          case "mosaic-width-third":
+            size = 4;
+            break;
+          case "mosaic-width-two-thirds":
+            size = 8;
+            break;
+          case "mosaic-width-three-quarters":
+            size = 9;
+            break;
+          case "mosaic-width-full":
+            size = 12;
+            break;
+        }
+
+        // Add cell start tag
+        body += '        <div class="' + $(obj).attr("class") + '">\n';  // jshint ignore:line
+
+        // Loop through tiles
+        $(obj).children().each(function () {
+          if ($(this).hasClass('mosaic-tile')){
+              var tile = new Tile(this);
+              body += tile.getHtmlBody(exportLayout);
+          } else if ($(this).hasClass('mosaic-grid-cell')) {
+              body += recursiveGridCell(this, body);
+          }
+        });
+
+        // Add cell end tag
+        body += '        </div>\n';
+
+        return body;
+    };
+    /* End Enfold Patch */
 
     // Content
     var content,
@@ -1670,64 +1755,11 @@ define([
           classNames = $(this).attr("class");
           body += '      <div class="' + classNames + '">\n';
 
-          // Loop through rows
           $(this).children(".mosaic-grid-cell").each(function () {
-
-            // Add column size
-            switch ($(this).mosaicGetPositionClass()) {
-              case "mosaic-position-leftmost":
-                position = 1;
-                break;
-              case "mosaic-position-quarter":
-                position = 4;
-                break;
-              case "mosaic-position-third":
-                position = 5;
-                break;
-              case "mosaic-position-half":
-                position = 7;
-                break;
-              case "mosaic-position-two-thirds":
-                position = 9;
-                break;
-              case "mosaic-position-three-quarters":
-                position = 10;
-                break;
-            }
-
-            // Add column size
-            switch ($(this).mosaicGetWidthClass()) {
-              case "mosaic-width-half":
-                size = 6;
-                break;
-              case "mosaic-width-quarter":
-                size = 3;
-                break;
-              case "mosaic-width-third":
-                size = 4;
-                break;
-              case "mosaic-width-two-thirds":
-                size = 8;
-                break;
-              case "mosaic-width-three-quarters":
-                size = 9;
-                break;
-              case "mosaic-width-full":
-                size = 12;
-                break;
-            }
-
-            // Add cell start tag
-            body += '        <div class="' + $(this).attr("class") + '">\n';  // jshint ignore:line
-
-            // Loop through tiles
-            $(this).children(".mosaic-tile").each(function () {
-              var tile = new Tile(this);
-              body += tile.getHtmlBody(exportLayout);
-            });
-
-            // Add cell end tag
-            body += '        </div>\n';
+            /* Start Enfold Patch
+                Since we allow recursive cells, we need to improve the code that converts them into layouts */
+            body += recursiveGridCell(this, body);
+            /* End Enfold Patch */
           });
 
           // Add row close tag
